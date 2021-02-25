@@ -9,7 +9,7 @@ description: |
 
   Credit where credit is due:
     * https://stackoverflow.com/a/57579982/6946787
-    * https://dille.name/blog/2018/09/20/how-to-tag-docker-images-without-pulling-the
+    * https://dille.name/blog/2018/09/20/how-to-tag-docker-images-without-pulling-them/
 
 
 inputs:
@@ -77,7 +77,7 @@ runs:
         logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
         ## Globals ##
-        ACCEPT_HEADER="application/vnd.docker.distribution.manifest.list.v2+json"  # Fat manifest
+        CONTENT_TYPE="application/vnd.docker.distribution.manifest.list.v2+json"  # Fat manifest
 
         ## FUNCTIONS ##
         def get_repos(repos_path):
@@ -123,13 +123,20 @@ runs:
             return l_version
 
 
-        def get_docker_auth_headers(token):
+        def get_docker_auth_headers(token, put=False):
             """
-            Get headers from docker auth token
+            Get headers from docker auth token.
+            Accept when a GET command, Content-Type when a PUT command
             """
 
+            if put:
+              return {
+                "Content-Type": CONTENT_TYPE,
+                "Authorization": "Bearer {}".format(token)
+              }
+
             return {
-                "Accept": ACCEPT_HEADER,
+                "Accept": CONTENT_TYPE,
                 "Authorization": "Bearer {}".format(token)
             }
 
@@ -275,7 +282,7 @@ runs:
             """
 
             # Get headers
-            headers = get_docker_auth_headers(token)
+            headers = get_docker_auth_headers(token, put=True)
 
             # Get data
             data = image_manifest
