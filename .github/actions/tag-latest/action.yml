@@ -281,10 +281,11 @@ runs:
             # Get headers
             headers = get_docker_auth_headers(token, put=True, manifest_type="v2")
 
-            print(headers)
-
             # Get data
-            data = image_manifest
+            data = image_manifest.copy()
+
+            # Change tag to "latest" before upload
+            data["tag"] = "latest"
 
             # Get reponse
             response = requests.put("{}/v2/{}/manifests/{}".format(registry_domain, repo, tag),
