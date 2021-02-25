@@ -13,7 +13,7 @@ description: |
 
 
 inputs:
-  docker_username:
+  docker_user_name:
     description: docker username used to log into docker
     required: true
   docker_access_token:

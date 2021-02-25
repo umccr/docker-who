@@ -19,5 +19,5 @@ jobs:
         name: add latest tags
         uses: ./.github/actions/tag-latest
         with:
-          docker_username: ${{ secrets.docker_username }}
-          docker_access_token: ${{ secrets.docker_access_token }}
+          docker_user_name: ${{ secrets.DOCKER_USER_NAME }}
+          docker_access_token: ${{ secrets.DOCKER_ACCESS_TOKEN }}
