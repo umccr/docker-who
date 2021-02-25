@@ -26,11 +26,11 @@ inputs:
   docker_registry_domain:
     description: name of the registry domain we wish to access
     required: false
-    default: "https://registry-1.docker.io/"
+    default: "https://registry-1.docker.io"
   docker_auth_domain:
     description: name of the authentication domain we wish to access
     required: false
-    default: "https://auth.docker.io"
+    default: "https://auth.docker.io/token"
   repos_dir:
     description: directory with all the repositories in it
     required: false
@@ -152,6 +152,7 @@ runs:
                  )
             )
 
+            # Get authentication
             auth = (user_name, auth_token)
 
             response = requests.get(auth_domain,
