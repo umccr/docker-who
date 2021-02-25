@@ -31,7 +31,7 @@ inputs:
     description: name of the authentication domain we wish to access
     required: false
     default: "https://auth.docker.io"
-  repo_dir:
+  repos_dir:
     description: directory with all the repositories in it
     required: false
     default: "repositories"
