@@ -1,6 +1,12 @@
 <p align="center"><img src="docs/images/readme-main.png" alt="docker-who-logo" width="1014"></p>
 
-# Dockerwho
+# Dockerwho <!-- omit in toc -->
+
+- [Contributing](#contributing)
+  - [Folder structure](#folder-structure)
+  - [Docker tags / labels](#docker-tags--labels)
+  - [Readme](#readme)
+- [Auto-creation of Latest tags with GitHub actions](#auto-creation-of-latest-tags-with-github-actions)
 
 A miscellaneous set of UMCCR dockerfiles that don't quite go anywhere else.    
 This repo contains mostly containers used in our CWL pipelines.
@@ -44,10 +50,15 @@ This should be a short document containing the following information.
   * The os-release of the host system where this container was built.
     * This can often be found at `/etc/os-release`.
 
-### Latest tags :construction:
+## Auto-creation of Latest tags with GitHub actions 
 
-At the moment we're avoiding using `latest` tags as this can be dynamic.   
-The end-goal is to have a GitHub actions that creates/bumps the latest tag to the appropriate version found in each repository.  
+The latest tag will be automatically created / updated on pushes to the 'main' branch.    
+GitHub Actions will push the 'latest' tag based on the latest version in the repo on the following conditions:
+  * The 'latest' tag does not exist for this repository. 
+  * OR The 'latest' tag checksum does not match the latest version in the repo AND the latest version has a creation time
+    AFTER the 'latest' tag creation time.  
+    
+
 
 
 
