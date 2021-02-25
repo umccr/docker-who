@@ -77,7 +77,10 @@ runs:
         logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
         ## Globals ##
-        CONTENT_TYPE="application/vnd.docker.distribution.manifest.list.v2+json"  # Fat manifest
+        MANIFEST_TYPES = {
+            "fat": "application/vnd.docker.distribution.manifest.list.v2+json",  # Fat manifest
+            "v2": "application/vnd.docker.distribution.manifest.v2+json"  # Upload Manifest
+        }
 
         ## FUNCTIONS ##
         def get_repos(repos_path):
@@ -109,7 +112,7 @@ runs:
                 return None
 
             # Now compare versions
-            for j, version in enumerate(versions[i+1:]):
+            for j, version in enumerate(versions[i + 1:]):
                 # Get versions
                 try:
                     parse_version(versions[j])
@@ -123,20 +126,14 @@ runs:
             return l_version
 
 
-        def get_docker_auth_headers(token, put=False):
+        def get_docker_auth_headers(token, put=False, manifest_type="fat"):
             """
             Get headers from docker auth token.
             Accept when a GET command, Content-Type when a PUT command
             """
 
-            if put:
-              return {
-                "Content-Type": CONTENT_TYPE,
-                "Authorization": "Bearer {}".format(token)
-              }
-
             return {
-                "Accept": CONTENT_TYPE,
+                "Content-Type" if put else "Accept": MANIFEST_TYPES[manifest_type],
                 "Authorization": "Bearer {}".format(token)
             }
 
@@ -183,13 +180,13 @@ runs:
             return json_r["token"]
 
 
-        def get_docker_image_manifest(registry_domain, repo, tag, token):
+        def get_docker_image_manifest(registry_domain, repo, tag, token, manifest_type="fat"):
             """
             Get the image manifest json for a given tag of a docker repo
             """
 
             # Get headers
-            headers = get_docker_auth_headers(token)
+            headers = get_docker_auth_headers(token, manifest_type=manifest_type)
 
             # Get reponse
             response = requests.get("{}/v2/{}/manifests/{}".format(registry_domain, repo, tag),
@@ -282,7 +279,9 @@ runs:
             """
 
             # Get headers
-            headers = get_docker_auth_headers(token, put=True)
+            headers = get_docker_auth_headers(token, put=True, manifest_type="v2")
+
+            print(headers)
 
             # Get data
             data = image_manifest
@@ -290,13 +289,15 @@ runs:
             # Get reponse
             response = requests.put("{}/v2/{}/manifests/{}".format(registry_domain, repo, tag),
                                     headers=headers,
-                                    data=data)
+                                    data=json.dumps(data))
 
             # Make sure we get successful request
             try:
                 response.raise_for_status()
             except HTTPError:
+                print(response.json())
                 return None
+
 
         # Start
 
@@ -347,11 +348,15 @@ runs:
 
             # Get manifest of latest version
             logging.debug("Collecting manifest of version for repo \"{}\" with tag \"{}\"".format(docker_repo, latest_version))
-            versioned_manifest = get_docker_image_manifest(docker_registry_domain, docker_repo, latest_version, docker_token)
+            versioned_manifest = get_docker_image_manifest(registry_domain=docker_registry_domain,
+                                                           repo=docker_repo,
+                                                           tag=latest_version,
+                                                           token=docker_token)
 
             # Check if versioned manifest exists
             if versioned_manifest is None:
-                logging.warning("Unable to find manifest for repo \"{}\" with tag \"{}\", skipping".format(docker_repo, latest_version))
+                logging.warning(
+                    "Unable to find manifest for repo \"{}\" with tag \"{}\", skipping".format(docker_repo, latest_version))
                 continue
             logging.debug("Collected manifest for repo \"{}\" with tag \"{}\"".format(docker_repo, latest_version))
 
@@ -366,36 +371,42 @@ runs:
             # Check this latest version is in the tags list
             if latest_manifest is None:
                 # 'latest' tag not in registry, push it up
-                logging.info("\"latest\" tag not found for repo \"{}\". Pushing \"{}\" to \"latest\"".format(docker_repo, latest_version))
-                push_docker_manifest_to_tag(registry_domain=docker_registry_domain,
-                                            repo=docker_repo,
-                                            tag="latest",
-                                            image_manifest=versioned_manifest,
-                                            token=docker_token)
-
-                continue
+                logging.info("\"latest\" tag not found for repo \"{}\". Pushing \"{}\" to \"latest\"".format(docker_repo,
+                                                                                                             latest_version))
 
             # Otherwise Compare checksums
-            if get_docker_shasum_from_image_manifest(versioned_manifest) == get_docker_shasum_from_image_manifest(latest_manifest):
+            elif get_docker_shasum_from_image_manifest(versioned_manifest) == get_docker_shasum_from_image_manifest(
+                    latest_manifest):
                 # Checksums are the same - nothing to do
                 logging.info("\"{}\" is already synced with \"{}\" as version \"latest\"".format(docker_repo, latest_version))
                 continue
 
             # And then compare timestamps
             # Only push latest if it was created before latest_version
-            if get_docker_creation_date_from_image_manifest(versioned_manifest) < get_docker_shasum_from_image_manifest(latest_manifest):
+            elif get_docker_creation_date_from_image_manifest(versioned_manifest) < get_docker_shasum_from_image_manifest(
+                    latest_manifest):
                 # Latest manifest was created AFTER, nothing to do, show warning
-                logging.warning("Warning \"latest\" tag for repo \"{}\" was created after \"{}\" and they are not the same manifest."
-                                "Don't know what to do. Skipping".format(docker_repo, latest_version))
+                logging.warning(
+                    "Warning \"latest\" tag for repo \"{}\" was created after \"{}\" and they are not the same manifest."
+                    "Don't know what to do. Skipping".format(docker_repo, latest_version))
                 continue
+            else:
+                # If we get to here it means that the checksums are different and the versioned_image was created after
+                # the 'latest' tag. Therefore we update the latest tag
+                logging.info("Updating \"latest\" tag for repo \"{}\" to match \"{}\"".format(docker_repo, latest_version))
 
-            # If we get to here it means that the checksums are different and the versioned_image was created after
-            # the 'latest' tag. Therefore we update the latest tag
-            logging.info("Updating \"latest\" tag for repo \"{}\" to match \"{}\"".format(docker_repo, latest_version))
+            # Get slimmed version of manifest file to upload to docker
+            versioned_manifest_slim = get_docker_image_manifest(registry_domain=docker_registry_domain,
+                                                                repo=docker_repo,
+                                                                tag=latest_version,
+                                                                token=docker_token,
+                                                                manifest_type="v2")
+            print(versioned_manifest_slim)
+            # Push docker manifest to dockerhub
             push_docker_manifest_to_tag(registry_domain=docker_registry_domain,
                                         repo=docker_repo,
-                                        tag="latest",
-                                        image_manifest=versioned_manifest,
+                                        tag=latest_version,
+                                        image_manifest=versioned_manifest_slim,
                                         token=docker_token)
 
 
