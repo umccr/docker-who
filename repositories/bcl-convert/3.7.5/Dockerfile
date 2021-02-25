@@ -13,7 +13,7 @@ LABEL author="Alexis Lucattini" \
 #
 # Building:
 #
-# docker build -t umccr/bcl-convert:latest-cwl -t umccr/bcl-convert:3.7.5-cwl
+# docker build -t umccr/bcl-convert:latest -t umccr/bcl-convert:3.7.5
 #
 # Running:
 #
