@@ -1,10 +1,15 @@
 name: tag-latest
+
 description: |
   Tag the latest version of each of the repositories.
+  Skip if:
+    If the latest version already matches the latest tag skip
+    The latest tag was created after the latest version
+    The latest version cannot be found
+
   Credit where credit is due:
     * https://stackoverflow.com/a/57579982/6946787
-    * https://dille.name/blog/2018/09/20/how-to-tag-docker-images-without-pulling-them/
-
+    * https://dille.name/blog/2018/09/20/how-to-tag-docker-images-without-pulling-the
 
 
 inputs:
@@ -14,10 +19,18 @@ inputs:
   docker_access_token:
     description: docker access token used to be piped into login commnad
     required: true
-  docker_registry_name:
-    description: name of the registry we wish to access
+  docker_registry_service:
+    description: the registry service we wish to retrieve our token for
+    required: false
+    default: "registry.docker.io"
+  docker_registry_domain:
+    description: name of the registry domain we wish to access
     required: false
     default: "https://registry-1.docker.io/"
+  docker_auth_domain:
+    description: name of the authentication domain we wish to access
+    required: false
+    default: "https://auth.docker.io"
   repo_dir:
     description: directory with all the repositories in it
     required: false
@@ -29,7 +42,7 @@ inputs:
 
 
 runs:
-  using: ubuntu-20.04  # This ensures we have python3 as our python default
+  using: "composite"
   steps:
     - shell: bash
       run: |
@@ -41,86 +54,177 @@ runs:
 
         # Install packaging
         pip3 install packaging
+        pip3 install requests
+        pip3 install python-dateutil
 
     - shell: python
       run: |
-        ## IMPORTS ##
+        ## Imports ##
+        # Standards
         from pathlib import Path
         import requests
-        import os
         import json
-        import packaging
-        from datetime import datetime
+        import logging
+        # Parsers
+        from packaging.version import parse as parse_version
+        from dateutil.parser import parse as parse_date
+        # Error imports
+        from requests.exceptions import HTTPError
+        from json import JSONDecodeError
+        from packaging.version import InvalidVersion
+
+        ## Logging ##
+        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
         ## Globals ##
         ACCEPT_HEADER="application/vnd.docker.distribution.manifest.list.v2+json"  # Fat manifest
 
         ## FUNCTIONS ##
-        def get_repos(repos_dir):
+        def get_repos(repos_path):
             """
             Get list of repos in the directory
             """
-            # Ensures is a directory in top level of repos_dir input
-            return list(dir for dir in Path(repos_dir).glob("*/") if dir.is_dir())
+            # Ensures is a directory in top level of repos_path input
+            return list(dir_obj for dir_obj in Path(repos_path).glob("*/") if dir_obj.is_dir())
+
 
         def get_latest_version(repo_dir):
             """
             Get the latest controlled version
             """
             # Get versions as folder names
-            versions = list(dir.name for dir in Path(repo_dir).glob("*/"))
+            versions = list(dir_obj.name for dir_obj in Path(repo_dir).glob("*/"))
 
             # Initialise latest versions
             for i, version in enumerate(versions):
-              try:
-                version.parse(versions[i])
-              except packging.version.InvalidVersion:
-                continue
-              else:
-                latest_version = versions[i]
-                break
+                try:
+                    parse_version(versions[i])
+                except InvalidVersion:
+                    continue
+                else:
+                    l_version = versions[i]
+                    break
             else:
-              # Did not find a correct version
-              return None
+                # Did not find a correct version
+                return None
 
             # Now compare versions
-            for j, version in versions[i+1:]:
-              # Get versions
-              try:
-                version.parse(versions[j])
-              except packaging.version.InvalidVersion:
-                continue
+            for j, version in enumerate(versions[i+1:]):
+                # Get versions
+                try:
+                    parse_version(versions[j])
+                except InvalidVersion:
+                    continue
 
-              # Compare versions, assign new if larger
-              if version.parse(latest_version) < version.parse(versions[i]):
-                latest_version = versions[i]
+                # Compare versions, assign new if larger
+                if parse_version(l_version) < parse_version(versions[i]):
+                    l_version = versions[i]
 
-            return latest_version
+            return l_version
 
 
-        def get_docker_token_for_repo(registry_name, repo):
+        def get_docker_auth_headers(token):
+            """
+            Get headers from docker auth token
+            """
+
+            return {
+                "Accept": ACCEPT_HEADER,
+                "Authorization": "Bearer {}".format(token)
+            }
+
+
+        def get_docker_token_for_repo(auth_domain, registry_service, repo, user_name, auth_token):
             """
             Get the push/pull token for this docker repo
             """
 
-            # PARAMS="service=registry.docker.io&scope=repository:$TARGET_NS_REPO:push&scope=repository:$TARGET_NS_REPO:pull"
-                          #TOKEN=$(curl --user "$DOCKERHUB_USERNAME:$DOCKERHUB_PASSWORD" \
-                          #    "https://auth.docker.io/token?$PARAMS" \
-                          #    | jq -r '.token'
-                          #)
+            # Get headers
+            headers = get_docker_auth_headers(auth_token)
 
-        def list_docker_repo_tags(registry_name, repo, token):
-            """
-            List of current tags for this docker repo
-            """
-            # FIXME - just try get one tag and then the next etc.
+            # Get params
+            params = (
+                ("service", registry_service),
+                ("scope", [
+                    "repository:{}:push".format(repo),
+                    "repository:{}:pull".format(repo)
+                ]
+                 )
+            )
 
-        def get_docker_image_manifest(registry_name, repo, tag, token):
+            auth = (user_name, auth_token)
+
+            response = requests.get(auth_domain,
+                                    headers=headers,
+                                    params=params,
+                                    auth=auth)
+
+            # Make sure we get successful request
+            try:
+                response.raise_for_status()
+            except HTTPError:
+                return None
+
+            # Get json from response
+            json_r = response.json()
+
+            # Confirm token
+            if "token" not in json_r.keys():
+                return None
+
+            return json_r["token"]
+
+
+        def get_docker_image_manifest(registry_domain, repo, tag, token):
             """
             Get the image manifest json for a given tag of a docker repo
             """
-            # versioned_manifest=$(curl -H "Accept: application/vnd.docker.distribution.manifest.list.v2+json" "https://registry-1.docker.io/v2/$TARGET_NS_REPO/manifests/$TAG" \
-                          #    -H "Authorization:Bearer $TOKEN")
+
+            # Get headers
+            headers = get_docker_auth_headers(token)
+
+            # Get reponse
+            response = requests.get("{}/v2/{}/manifests/{}".format(registry_domain, repo, tag),
+                                    headers=headers)
+
+            # Make sure we get successful request
+            try:
+                response.raise_for_status()
+            except HTTPError:
+                return None
+
+            # Get json from response
+            json_r = response.json()
+
+            return json_r
+
+
+        def get_latest_v1_compat_as_json_from_image_manifest(image_manifest):
+            """
+            Saves a few repeated steps
+            """
+            # Check history
+            if "history" not in image_manifest.keys():
+                return None
+            history = image_manifest["history"]
+
+            # Check history len
+            if len(history) == 0:
+                return None
+            latest_history = history[0]
+
+            # Check v1Compatability
+            if "v1Compatability" not in latest_history.keys():
+                return None
+            v1_compatability = latest_history["v1Compatability"]
+
+            # Load v1Compatability json
+            try:
+                v1_compatability_as_json = json.loads(v1_compatability)
+            except JSONDecodeError:
+                return None
+
+            return v1_compatability_as_json
 
 
         def get_docker_shasum_from_image_manifest(image_manifest):
@@ -129,76 +233,162 @@ runs:
             Under .history[0].v1Compatibility | fromjson | .container_config.Image
             """
 
+            v1_compatability_as_json = get_latest_v1_compat_as_json_from_image_manifest(image_manifest)
+            if v1_compatability_as_json is None:
+                return None
+
+            # check container_config
+            if "container_config" not in v1_compatability_as_json.keys():
+                return None
+            container_config = v1_compatability_as_json["container_config"]
+
+            # check image shasum
+            if "Image" not in container_config:
+                return None
+            image_shasum = container_config["Image"]
+
+            # has "shasum:" as prefix
+            return image_shasum.split(":", 1)[-1]
+
+
         def get_docker_creation_date_from_image_manifest(image_manifest):
             """
             Get the image checksum from the manifest
             Under '.history[0].v1Compatibility | fromjson | .created
             """
 
-        def push_docker_manifest_to_tag(registry_name, repo, tag, image_manifest, token):
+            v1_compatability_as_json = get_latest_v1_compat_as_json_from_image_manifest(image_manifest)
+            if v1_compatability_as_json is None:
+                return None
+
+            # Get created
+            if "created" not in v1_compatability_as_json.keys():
+                return None
+
+            return parse_date(v1_compatability_as_json["created"])
+
+
+        def push_docker_manifest_to_tag(registry_domain, repo, tag, image_manifest, token):
             """
             Push the docker manifest to the registry
             """
 
-            # url -X PUT -H "Authorization:Bearer $TOKEN" -H "Content-type: application/vnd.docker.distribution.manifest.v2+json" -d "$versioned_manifest" "https://registry-1.docker.io/v2/$TARGET_NS_REPO/manifests/latest"
+            # Get headers
+            headers = get_docker_auth_headers(token)
 
+            # Get data
+            data = image_manifest
+
+            # Get reponse
+            response = requests.put("{}/v2/{}/manifests/{}".format(registry_domain, repo, tag),
+                                    headers=headers,
+                                    data=data)
+
+            # Make sure we get successful request
+            try:
+                response.raise_for_status()
+            except HTTPError:
+                return None
+
+        # Start
 
         # Get inputs
         docker_user_name = "${{ inputs.docker_user_name }}"
         docker_access_token = "${{ inputs.docker_access_token }}"
-        docker_registry_name = "${{ inputs.docker_registry_name }}"
+        docker_registry_service = "${{ inputs.docker_registry_service }}"
+        docker_registry_domain = "${{ inputs.docker_registry_domain }}"
+        docker_auth_domain = "${{ inputs.docker_auth_domain }}"
         repos_dir = "${{ inputs.repos_dir }}"
         docker_organisation = "${{ inputs.docker_organisation }}"
 
         # Get repos
-        repos = get_repos(repos_dir)
+        logging.info("Finding repos")
+        docker_repos = get_repos(repos_dir)
 
         # Go through each repo and update 'latest' tag
-        for repo in repos:
+        logging.info("Iterating through repos")
+        for repo_dir in docker_repos:
+            # Get docker_repo
+            docker_repo = str(Path(docker_organisation) / Path(repo_dir).name)
 
-          # Get "latest" version
-          latest_version = get_latest_version(repo_dir)
-          if latest_version is None:
-            continue
+            # Get "latest" version
+            logging.debug("Getting latest version of repo \"{}\"".format(repo_dir))
 
-          # Get docker token for this repo
-          docker_token = get_docker_token_for_repo(docker_registry_name, repo)
+            # Get latest version from repo folder
+            latest_version = get_latest_version(repo_dir=repo_dir)
 
-          # List docker repo tags
-          docker_tags_list = list_docker_repo_tags(docker_registry_name, repo, docker_token)
+            # Check we could find a latest version
+            if latest_version is None:
+                logging.warning("Could not find latest version of \"{}\", skipping".format(docker_repo))
+                continue
+            logging.debug("Found \"{}\" to be the latest version of repo \"{}\"".format(latest_version, docker_repo))
 
-          # Check this latest version is in the tags list
-          if latest_version not in docker_tags_list:
-            # Can't continue if we can't find this tag
-            continue
+            # Get docker token for this repo
+            logging.debug("Collecting docker token for repo \"{}\"".format(docker_repo))
+            docker_token = get_docker_token_for_repo(auth_domain=docker_auth_domain,
+                                                     registry_service=docker_registry_service,
+                                                     repo=docker_repo,
+                                                     user_name=docker_user_name,
+                                                     auth_token=docker_access_token)
 
-          # Get manifest of latest version
-          versioned_manifest = get_docker_image_manifest(docker_registry_name, repo, latest_version, docker_token)
+            # Check token is valid
+            if docker_token is None:
+                logging.warning("Unable to collect token for repo \"{}\", skipping".format(docker_repo))
+                continue
+            logging.debug("Collected docker token for repo \"{}\"".format(docker_repo))
 
-          # Check if "latest" tag is on registry
-          if "latest" not in docker_tags_list:
-            # Not on registry, push it up
-            push_docker_manifest_to_tag(docker_registry_name, repo, "latest", versioned_manifest, docker_token)
-            # Aaand we're done!
-            continue
+            # Get manifest of latest version
+            logging.debug("Collecting manifest of version for repo \"{}\" with tag \"{}\"".format(docker_repo, latest_version))
+            versioned_manifest = get_docker_image_manifest(docker_registry_domain, docker_repo, latest_version, docker_token)
 
-          # Otherwise get the latest manifest
-          latest_manifest = get_docker_image_manifest(docker_registry_name, repo, "latest", docker_token)
+            # Check if versioned manifest exists
+            if versioned_manifest is None:
+                logging.warning("Unable to find manifest for repo \"{}\" with tag \"{}\", skipping".format(docker_repo, latest_version))
+                continue
+            logging.debug("Collected manifest for repo \"{}\" with tag \"{}\"".format(docker_repo, latest_version))
 
-          # Compare checksums
-          if get_docker_shasum_from_image_manifest(versioned_manifest) == get_docker_shasum_from_image_manifest(latest_manifest):
-            # Checksums are the same - nothing to do
-            continue
+            # Get latest manifest
+            logging.debug("Collecting manifest for repo \"{}\" with tag \"latest\"".format(docker_repo))
+            latest_manifest = get_docker_image_manifest(registry_domain=docker_registry_domain,
+                                                        repo=docker_repo,
+                                                        tag="latest",
+                                                        token=docker_token)
 
-          # Compare timestamps
-          # Only push latest if it was created before latest_version
-          if get_docker_creation_date_from_image_manifest(versioned_manifest) < get_docker_shasum_from_image_manifest(latest_manifest):
-            # Latest manifest was created AFTER, nothing to do
-            continue
 
-          # If we get to here it means that the checksums are different and the versioned_image was created after
-          # the 'latest' tag. Therefore we update the latest tag
-          push_docker_manifest_to_tag(docker_registry_name, repo, "latest", versioned_manifest, docker_token)
+            # Check this latest version is in the tags list
+            if latest_manifest is None:
+                # 'latest' tag not in registry, push it up
+                logging.info("\"latest\" tag not found for repo \"{}\". Pushing \"{}\" to \"latest\"".format(docker_repo, latest_version))
+                push_docker_manifest_to_tag(registry_domain=docker_registry_domain,
+                                            repo=docker_repo,
+                                            tag="latest",
+                                            image_manifest=versioned_manifest,
+                                            token=docker_token)
+
+                continue
+
+            # Otherwise Compare checksums
+            if get_docker_shasum_from_image_manifest(versioned_manifest) == get_docker_shasum_from_image_manifest(latest_manifest):
+                # Checksums are the same - nothing to do
+                logging.info("\"{}\" is already synced with \"{}\" as version \"latest\"".format(docker_repo, latest_version))
+                continue
+
+            # And then compare timestamps
+            # Only push latest if it was created before latest_version
+            if get_docker_creation_date_from_image_manifest(versioned_manifest) < get_docker_shasum_from_image_manifest(latest_manifest):
+                # Latest manifest was created AFTER, nothing to do, show warning
+                logging.warning("Warning \"latest\" tag for repo \"{}\" was created after \"{}\" and they are not the same manifest."
+                                "Don't know what to do. Skipping".format(docker_repo, latest_version))
+                continue
+
+            # If we get to here it means that the checksums are different and the versioned_image was created after
+            # the 'latest' tag. Therefore we update the latest tag
+            logging.info("Updating \"latest\" tag for repo \"{}\" to match \"{}\"".format(docker_repo, latest_version))
+            push_docker_manifest_to_tag(registry_domain=docker_registry_domain,
+                                        repo=docker_repo,
+                                        tag="latest",
+                                        image_manifest=versioned_manifest,
+                                        token=docker_token)
 
 
 

@@ -1,0 +1,23 @@
+name: add latest tags
+
+on:
+  push:
+    branches:
+      - "main"
+
+jobs:
+  add_latest_tags_to_docker_hub:
+    name: Add latest tags to docker hub
+    runs-on: ubuntu-20.04  # This ensures that we have python3 installed
+    steps:
+      # Standard checkout step
+      - id: checkout-code
+        name: Checkout code
+        uses: actions/checkout@v2
+      # Add latest tags
+      - id: add-latest-tags
+        name: add latest tags
+        uses: ./.github/actions/tag-latest
+        with:
+          docker_username: ${{ secrets.docker_username }}
+          docker_access_token: ${{ secrets.docker_access_token }}
