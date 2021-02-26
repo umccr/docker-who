@@ -4,6 +4,11 @@ LABEL author="Alexis Lucattini" \
       description="Run bcl-convert 3.7.5 from a container" \
       maintainer="alexis.lucattini@umccr.org"
 
+ARG GROUP="centos_group"
+ARG GID="1000"
+ARG USER="centos_user"
+ARG UID="1000"
+
 # This docker file was created with inspiration from
 # https://gist.github.com/pansapiens/f66bdb59230004eba0d7fdec9e7eb5d8
 # 
@@ -25,17 +30,35 @@ LABEL author="Alexis Lucattini" \
 #
 
 # Add in RPM file
-ADD bcl-convert.rpm /tmp/bcl-convert.rpm
+ADD bcl-convert.3.7.5.rpm /tmp/bcl-convert.rpm
+
+# Create group/user
+RUN groupadd \
+        --system \
+        --gid "$GID" \
+        "$GROUP" && \
+    useradd \
+        --system \
+        --gid "$GID" \
+        --no-create-home \
+        --uid "$UID" \
+        "$USER"
 
 # Install with groupinstall compiler tools
 # -y -q for peace and quietness
 RUN yum update -y -q && \
+    yum groups mark install -y -q "Development Tools" && \
+    yum groups mark convert -y -q "Development Tools" && \
     yum groupinstall -y -q "Development Tools" && \
     yum update -y -q && \
     rpm -i /tmp/bcl-convert.rpm && \
     rm /tmp/bcl-convert.rpm && \
     yum clean all && \
     rm -rf /var/cache/yum
+
+# Create and chown bcl-convert log dir so user can write to it
+RUN mkdir -p /var/log/bcl-convert && \
+    chown -R "$UID:$GID" /var/log/bcl-convert
 
 # This is so that bcl-convert can write a small little file to this folder
 # When running with singularity use 
@@ -47,3 +70,5 @@ VOLUME /var/log/bcl-convert
 # Set the entrypoint to null so that the Dockerfile
 # is compatible with the cwl spec
 ENTRYPOINT []
+
+CMD [ "bcl-convert" ]
