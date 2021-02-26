@@ -120,8 +120,8 @@ runs:
                     continue
 
                 # Compare versions, assign new if larger
-                if parse_version(l_version) < parse_version(versions[i]):
-                    l_version = versions[i]
+                if parse_version(l_version) < parse_version(versions[j]):
+                    l_version = versions[j]
 
             return l_version
 
@@ -284,10 +284,7 @@ runs:
             # Get data
             data = image_manifest.copy()
 
-            # Change tag to "latest" before upload
-            data["tag"] = "latest"
-
-            # Get reponse
+            # Get response
             response = requests.put("{}/v2/{}/manifests/{}".format(registry_domain, repo, tag),
                                     headers=headers,
                                     data=json.dumps(data))
@@ -296,7 +293,6 @@ runs:
             try:
                 response.raise_for_status()
             except HTTPError:
-                print(response.json())
                 return None
 
 
@@ -402,13 +398,10 @@ runs:
                                                                 tag=latest_version,
                                                                 token=docker_token,
                                                                 manifest_type="v2")
-            print(versioned_manifest_slim)
+
             # Push docker manifest to dockerhub
             push_docker_manifest_to_tag(registry_domain=docker_registry_domain,
                                         repo=docker_repo,
-                                        tag=latest_version,
+                                        tag="latest",
                                         image_manifest=versioned_manifest_slim,
                                         token=docker_token)
-
-
-
