@@ -45,6 +45,8 @@ jobs:
       - name: Checkout code
         id: git_checkout
         uses: actions/checkout@v3
+        with:
+          lfs: true
       # Tag to path
       - name: Strip tag as path
         id: tag_to_path
