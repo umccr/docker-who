@@ -72,3 +72,9 @@ By default both `linux/amd64` and `linux/arm64` containers are built, however th
 is appropriate. One can place a `config.yaml` file beside the image with a `platforms` key as a list. 
 
 See [bcl-convert configuration file](https://github.com/umccr/docker-who/blob/main/repositories/bcl-convert/3.7.5/config.yaml) as an example.
+
+## Removing 'untagged' versions.
+
+Do not delete untagged versions of images as it will prevent [skopeo](https://github.com/containers/skopeo) from determining the manifest.  
+
+If you have a lot of untagged versions, you may remove the package first and then re-push to trigger a fresh rebuild
