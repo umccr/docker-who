@@ -1,6 +1,12 @@
 <p align="center"><img src="docs/images/readme-main.png" alt="docker-who-logo" width="1014"></p>
 
-# Dockerwho
+# Dockerwho <!-- omit in toc -->
+
+- [Contributing](#contributing)
+  - [Folder structure](#folder-structure)
+  - [Docker tags / labels](#docker-tags--labels)
+  - [Readme](#readme)
+- [Auto-creation of Latest tags with GitHub actions](#auto-creation-of-latest-tags-with-github-actions)
 
 A miscellaneous set of UMCCR dockerfiles that don't quite go anywhere else.    
 This repo contains mostly containers used in our CWL pipelines.
@@ -39,15 +45,23 @@ This should be a short document containing the following information.
   * Links to more online help for using this container.
   * Links to GitHub repositories that are used in this repo.
   * References to others when the dockerfile has been mostly inspired / derived from another source.
+  
+## Auto-creation of docker image with GitHub Actions
 
-2. Build information:
-  * The os-release of the host system where this container was built.
-    * This can often be found at `/etc/os-release`.
+If your Dockerfile is pushed to the "main" branch, then it will be built and placed in the GitHub Container registry and
+accessible via the [packages page](https://github.com/orgs/umccr/packages?repo_name=docker-who).  
 
-### Latest tags :construction:
+By default packages are private but can be made public in each individual package setting.  
 
-At the moment we're avoiding using `latest` tags as this can be dynamic.   
-The end-goal is to have a GitHub actions that creates/bumps the latest tag to the appropriate version found in each repository.  
+You can pull the docker image created via the following command:
 
+```bash
+docker pull ghcr.io/umccr/<package_name>:<package_version>
+```
 
+Docker images will only be updated if the versioned folder is updated.
 
+## Auto-creation of "latest" tags with GitHub Actions 
+
+The latest tag will be automatically created / updated on pushes to the 'main' branch 
+if the version is the latest version for that package.   
