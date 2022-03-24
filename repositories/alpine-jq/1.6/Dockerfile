@@ -16,7 +16,7 @@ ARG GID=1000
 ARG GROUP="alpine_group"
 
 RUN apk update --quiet && \
-    if [[ "${FUZZY-}" == "true" ]]; then \
+    if [ "${FUZZY-}" = "true" ]; then \
       TOOL_VERSION="$(apk search --no-cache --repository "${ALPINE_MAIN_REPOSITORY}" \
                         "${TOOL_NAME}" | \
                       grep "^${TOOL_NAME}-${TOOL_VERSION}" | \

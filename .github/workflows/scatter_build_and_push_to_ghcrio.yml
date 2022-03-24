@@ -51,6 +51,39 @@ jobs:
       - name: Strip tag as path
         id: tag_to_path
         run: echo "::set-output name=image_path::$( echo ${{ matrix.image_tag }} | tr ':' '/' )"
+      # Check if platforms.yaml is present
+      - name: Get platforms to build
+        id: get_platforms
+        shell: bash
+        run: |
+          # FIXME eventually place conditional if platforms exist
+          # Get platforms
+          DEFAULT_PLATFORMS_STR="linux/amd64,linux/arm64"
+          
+          # Config path
+          config_path="repositories/${{ steps.tag_to_path.outputs.image_path }}/config.yaml"
+          
+          # Initialise
+          platforms_str=""
+          
+          # Get config.yaml to determine output
+          if [[ -f "${config_path}" ]]; then
+            # Docker ception - run yq container
+            platforms_str="$(docker run --rm \
+                              --volume "$PWD:$PWD" \
+                              --workdir "$PWD" \
+                              docker.io/mikefarah/yq:4.23.1 \
+                                '.platforms | join(",")' \
+                                "${config_path}")" 
+          fi
+          
+          # If string is empty, set default platforms
+          if [[ -z "${platforms_str}" ]]; then
+            platforms_str="${DEFAULT_PLATFORMS_STR}"
+          fi
+          
+          # Set output
+          echo "::set-output name=platforms_as_str::${platforms_str}"
       # Use qemu to perform multiplatform builds
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -75,7 +108,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: repositories/${{ steps.tag_to_path.outputs.image_path }}
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ steps.get_platforms.outputs.platforms_as_str }}
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.image_tag }}
       # Ensure if image is latest, push latest tag with skopeo

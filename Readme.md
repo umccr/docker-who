@@ -65,3 +65,10 @@ Docker images will only be updated if the versioned folder is updated.
 
 The latest tag will be automatically created / updated on pushes to the 'main' branch 
 if the version is the latest version for that package.   
+
+## Selecting specific platforms to build
+
+By default both `linux/amd64` and `linux/arm64` containers are built, however there may exist a situation where just one 
+is appropriate. One can place a `config.yaml` file beside the image with a `platforms` key as a list. 
+
+See [bcl-convert configuration file](https://github.com/umccr/docker-who/blob/main/repositories/bcl-convert/3.7.5/config.yaml) as an example.

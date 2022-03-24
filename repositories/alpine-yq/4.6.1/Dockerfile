@@ -26,7 +26,8 @@ RUN addgroup \
     "$USER"
 
 RUN wget --output-document /usr/local/bin/yq \
-	"https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_${TARGETPLATFORM#linux/}"
+	"https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_${TARGETPLATFORM#linux/}" && \
+    chmod +x /usr/local/bin/yq
    
 
 USER "$USER"
