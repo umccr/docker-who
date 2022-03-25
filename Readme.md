@@ -6,7 +6,11 @@
   - [Folder structure](#folder-structure)
   - [Docker tags / labels](#docker-tags--labels)
   - [Readme](#readme)
-- [Auto-creation of Latest tags with GitHub actions](#auto-creation-of-latest-tags-with-github-actions)
+- [Auto-creation of docker image with GitHub Actions](#auto-creation-of-docker-image-with-github-actions)
+- [Auto-creation of "latest" tags with GitHub Actions](#auto-creation-of-latest-tags-with-github-actions)
+- [Selecting specific platforms to build](#selecting-specific-platforms-to-build)
+- [Removing 'untagged' versions.](#removing-untagged-versions)
+- [Large files](#large-files)
 
 A miscellaneous set of UMCCR dockerfiles that don't quite go anywhere else.    
 This repo contains mostly containers used in our CWL pipelines.
@@ -78,3 +82,17 @@ See [bcl-convert configuration file](https://github.com/umccr/docker-who/blob/ma
 Do not delete untagged versions of images as it will prevent [skopeo](https://github.com/containers/skopeo) from determining the manifest.  
 
 If you have a lot of untagged versions, you may remove the package first and then re-push to trigger a fresh rebuild
+
+## Large files
+
+Some images require large installation files (such as BCLConvert) that can't be pulled from elsewhere (yay for clickwrap licenses!)
+
+Rather than simplying ignoring this file or adding this large file to git we can use the git lfs system.  
+
+If you have a suffix that should be ignored, run the following command at the root directory of this project.  
+
+```bash
+git lfs track "*.<insert_suffix_here>"
+```
+
+Be sure to also add the `.gitattributes` file at the top of your project to your next commit as well.  
