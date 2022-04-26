@@ -23,7 +23,8 @@ RUN apk update --quiet && \
                       sed "s%^${TOOL_NAME}-%%")"; \
     fi; \
     apk add --no-cache --repository "${ALPINE_MAIN_REPOSITORY}" \
-      "${TOOL_NAME}=${TOOL_VERSION}"
+      "${TOOL_NAME}=${TOOL_VERSION}" \
+      "bash"
 
 RUN addgroup \
     --system \
