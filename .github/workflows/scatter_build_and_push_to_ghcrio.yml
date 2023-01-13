@@ -50,7 +50,7 @@ jobs:
       # Tag to path
       - name: Strip tag as path
         id: tag_to_path
-        run: echo "::set-output name=image_path::$( echo ${{ matrix.image_tag }} | tr ':' '/' )"
+        run: echo "image_path=$( echo ${{ matrix.image_tag }} | tr ':' '/' )" >> "${GITHUB_OUTPUT}"
       # Check if platforms.yaml is present
       - name: Get platforms to build
         id: get_platforms
@@ -83,7 +83,7 @@ jobs:
           fi
           
           # Set output
-          echo "::set-output name=platforms_as_str::${platforms_str}"
+          echo "platforms_as_str=${platforms_str}" >> "${GITHUB_OUTPUT}"
       # Use qemu to perform multiplatform builds
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -119,7 +119,9 @@ jobs:
         run: |
           # Push latest tag
           # Install packaging 
-          pip3 install --quiet packaging
+          # Downgrade packaging versioning
+          # https://stackoverflow.com/questions/74941714/importerror-cannot-import-name-legacyversion-from-packaging-version
+          pip3 install --quiet "packaging==21.3"
           # Run latest tag python script
           python3 .github/scripts/push-latest-tag.py
         env:
