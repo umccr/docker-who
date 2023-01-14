@@ -18,8 +18,7 @@ import sys
 import json
 from typing import Dict, List, Optional, Union
 import hashlib
-from packaging import version
-from packaging.version import Version, LegacyVersion
+from packaging.version import Version
 
 # Globals
 SKOPEO_IMAGE = "quay.io/skopeo/stable:latest"
@@ -42,18 +41,17 @@ stderr_handler.setFormatter(formatter)
 logger.addHandler(stderr_handler)
 
 # Functions
-def is_valid_version(version_object: Union[Version, LegacyVersion]) -> bool:
+def is_valid_version(version_str: str) -> bool:
     """
     Determine if a valid version
     :param version_object:
     :return:
     """
-    if isinstance(version_object, Version):
+
+    try:
+        _ = Version(version_str)
         return True
-    elif isinstance(version_object, LegacyVersion):
-        return False
-    else:
-        logger.warning(f"{version_object} is not a version object")
+    except ValueError:
         return False
 
 
@@ -231,22 +229,22 @@ def get_tags_of_image(org_name: str, image_name: str, container_id):
 
 def is_tag_latest(tag_list: List, image_version: str) -> bool:
     """
-    Compare this tag to all of the tags and determine if its the latest version
+    Compare this tag to all the tags and determine if its the latest version
     :param tag_list:
     :param image_version:
     :return:
     """
 
     # Ensure image_version can be parsed
-    if not is_valid_version(version.parse(image_version)):
-        logger.error(f"Cannot parse image version as a float: \"{image_version}\"")
-        sys.exit(1)
+    if not is_valid_version(image_version):
+        logger.error(f"Cannot parse image version: \"{image_version}\"")
+        raise ValueError
 
     # Filter non-semver tags (like latest)
-    versioned_tag_list = filter(lambda x: is_valid_version(version.parse(x)), tag_list)
+    versioned_tag_list = filter(lambda x: is_valid_version(x), tag_list)
 
     for tag in versioned_tag_list:
-        if version.parse(image_version) < version.parse(tag):
+        if Version(image_version) < Version(tag):
             return False
 
     return True
