@@ -17,8 +17,7 @@ docker pull ghcr.io/umccr/multiqc-interop:1.14.0--1.2.0
 
 ### Description
 
-Official multiqc documentation can be found [here](https://multiqc.info/).
-
+Official multiqc documentation can be found [here](https://multiqc.info/). 
 Official interop documentation can be found [here](https://illumina.github.io/interop/index.html).
 
 
