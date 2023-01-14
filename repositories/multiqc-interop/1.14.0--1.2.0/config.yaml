@@ -1,0 +1,3 @@
+# Specify particular platforms to build
+platforms:
+  - linux/amd64
