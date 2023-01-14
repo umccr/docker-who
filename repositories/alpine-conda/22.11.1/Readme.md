@@ -7,7 +7,7 @@
 
 ## Platforms
 * linux/amd64
-* linux/arm64 :construction:
+* linux/arm64
 
 ### Usage
 
