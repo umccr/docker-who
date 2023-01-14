@@ -18,7 +18,7 @@ import sys
 import json
 from typing import Dict, List, Optional, Union
 import hashlib
-from packaging.version import Version
+from semantic_version import Version
 
 # Globals
 SKOPEO_IMAGE = "quay.io/skopeo/stable:latest"
@@ -73,6 +73,7 @@ def pull_skopeo_container() -> None:
         sys.exit(1)
 
     logger.info(f"Pulled down the skopeo image \"{SKOPEO_IMAGE}\"")
+
 
 def create_skopeo_container() -> str:
     """

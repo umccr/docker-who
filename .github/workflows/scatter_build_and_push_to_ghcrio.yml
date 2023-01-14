@@ -118,10 +118,8 @@ jobs:
         shell: bash
         run: |
           # Push latest tag
-          # Install packaging 
-          # Downgrade packaging versioning
-          # https://stackoverflow.com/questions/74941714/importerror-cannot-import-name-legacyversion-from-packaging-version
-          pip3 install --quiet packaging
+          # Install semantic version
+          pip install semantic-version
           # Run latest tag python script
           python3 .github/scripts/push-latest-tag.py
         env:
