@@ -12,13 +12,13 @@ ARG UID="1000"
 # This docker file was created with inspiration from
 # https://gist.github.com/pansapiens/f66bdb59230004eba0d7fdec9e7eb5d8
 # 
-# You'll need to download bcl-convert.3.10.5.rpm from
+# You'll need to download bcl-convert.4.1.5.rpm from
 # https://sapac.support.illumina.com/sequencing/sequencing_software/bcl-convert/downloads.html
 # Yay clickwrap licenses !
 #
 # Building:
 #
-# docker build -t umccr/bcl-convert:latest -t umccr/bcl-convert:3.10.5
+# docker build -t umccr/bcl-convert:latest -t umccr/bcl-convert:4.1.5
 #
 # Running:
 #
