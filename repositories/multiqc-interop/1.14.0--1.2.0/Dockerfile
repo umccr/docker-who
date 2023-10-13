@@ -1,4 +1,4 @@
-FROM ghcr.io/umccr/alpine-conda:22.11.1
+FROM continuumio/anaconda3:2023.09-0
 
 LABEL author="Alexis Lucattini" \
       description="Run illumina-interop and then run multiqc" \
@@ -7,11 +7,9 @@ LABEL author="Alexis Lucattini" \
 ARG MULTIQC_VERSION="1.14.0"
 ARG ILLUMINA_INTEROP_VERSION="1.2.0"
 
-RUN conda install --quiet --yes \
-      pip && \
-    pip install interop=="${ILLUMINA_INTEROP_VERSION}" && \
-    pip install multiqc=="${MULTIQC_VERSION}" && \
-    pip cache purge && \
+RUN conda config --prepend channels conda-forge && \
+    conda install -c bioconda multiqc=="${MULTIQC_VERSION}" && \
+    conda install -c bioconda illumina-interop=="${ILLUMINA_INTEROP_VERSION}" && \ 
     find /opt/conda/ -follow -type f -name '*.a' -delete && \
     find /opt/conda/ -follow -type f -name '*.pyc' -delete && \
     /opt/conda/bin/conda clean --yes \
