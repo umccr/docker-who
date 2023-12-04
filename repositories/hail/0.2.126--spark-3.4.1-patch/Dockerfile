@@ -11,10 +11,13 @@ RUN apt update -y && \
       g++ \
       python3 \
       python3-pip \
+      python3-setuptools \
       libopenblas-base \
       liblapack3 \
       git \
       rsync \
+      liblz4-1 \
+      liblz4-tool \
       liblz4-dev 
 
 COPY 0001-spark-to-3.4.1.patch /root/0001-spark-to-3.4.1.patch 
@@ -38,3 +41,10 @@ RUN \
     rm -rf hail && \
     rm /root/0001-spark-to-3.4.1.patch
 
+# FROM https://github.com/projectglow/glow/blob/master/docker/databricks/dbr/dbr10.4/genomics-with-hail/Dockerfile
+
+RUN mkdir -p /databricks/jars && \
+  find "/databricks/python3/" -type f -name 'hail-all-spark.jar' -exec ln -s {} /databricks/jars/ \; 
+
+RUN mkdir -p /databricks/driver/conf/
+COPY 00-hail.conf /databricks/driver/conf/
