@@ -203,7 +203,14 @@ def main():
 
     # Print out image_tags_to_build as a json string that GitHub Actions will read
     image_tags_as_json_string = json.dumps(images_tags_to_build).replace(", ", ",")
-    print(f"::set-output name=image_tags_to_build::{image_tags_as_json_string}")
+
+    # Get GITHUB_OUTPUT env var
+    github_output = environ["GITHUB_OUTPUT"]
+
+    # Write 'image_tags_to_build' to GITHUB_OUTPUT
+    with open(github_output, 'a') as github_output_h:
+        github_output_h.write(f"image_tags_to_build={image_tags_as_json_string}\n")
+
 
 if __name__ == "__main__":
     main()
