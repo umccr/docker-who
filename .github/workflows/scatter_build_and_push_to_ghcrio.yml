@@ -14,12 +14,12 @@ jobs:
       # Standard checkout step
       - name: Checkout code
         id: checkout_code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
             fetch-depth: 0
       # Log in to GitHub Container registry
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -44,7 +44,7 @@ jobs:
       # Standard checkout step
       - name: Checkout code
         id: git_checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           lfs: true
       # Tag to path
@@ -98,7 +98,7 @@ jobs:
               max-parallelism = 2
       # Log in to GitHub Container registry
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
