@@ -86,10 +86,10 @@ jobs:
           echo "platforms_as_str=${platforms_str}" >> "${GITHUB_OUTPUT}"
       # Use qemu to perform multiplatform builds
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
       # Use docker buildx to build multi-platform containers
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         with:
           use: true
           install: true
