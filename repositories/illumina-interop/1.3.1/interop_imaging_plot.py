@@ -111,7 +111,7 @@ def plot_data(imaging_df: pd.DataFrame, output_png: Path, run_id: str) -> None:
     )
 
     # Set title
-    ax.set_title(f"Pct. Pass Filter vs. Pct. Occupied for run '{run_id}'")
+    fig.suptitle(f"Pct. Pass Filter vs. Pct. Occupied for run '{run_id}'")
 
     # Set x-axis label
     ax.set_xlabel('% Occupied')
@@ -124,6 +124,9 @@ def plot_data(imaging_df: pd.DataFrame, output_png: Path, run_id: str) -> None:
 
     # Set legend
     ax.legend(title='Lane')
+
+    # Pack everything up nicely
+    fig.tight_layout()
 
     # Save plot
     fig.savefig(sys.argv[2])
