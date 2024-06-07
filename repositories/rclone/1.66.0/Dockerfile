@@ -14,7 +14,6 @@ RUN apt update -y -q && \
       wget \
       python3 \
       python3-tomli-w && \
-    bash -c \
     wget \
       --output-document "rclone-${RCLONE_VERSION}-linux-"${TARGETPLATFORM#linux/}".deb" \
       "https://downloads.rclone.org/${RCLONE_VERSION}/rclone-${RCLONE_VERSION}-linux-"${TARGETPLATFORM#linux/}".deb" && \
