@@ -16,8 +16,8 @@ RUN apt update -y -q && \
       python3-tomli-w && \
     wget \
       --output-document "rclone-${RCLONE_VERSION}-"${TARGETPLATFORM//\//-}".deb" \
-      "https://downloads.rclone.org/${RCLONE_VERSION}/rclone-${RCLONE_VERSION}-linux-"${TARGETPLATFORM//\//-}".deb" && \
-    dpkg -i "rclone-${RCLONE_VERSION}-linux-${TARGETPLATFORM//\//-}.deb" && \
+      "https://downloads.rclone.org/${RCLONE_VERSION}/rclone-${RCLONE_VERSION}-"${TARGETPLATFORM//\//-}".deb" && \
+    dpkg -i "rclone-${RCLONE_VERSION}-${TARGETPLATFORM//\//-}.deb" && \
     chmod +x /usr/local/bin/rclone-config-maker
 
 
