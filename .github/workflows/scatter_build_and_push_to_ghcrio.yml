@@ -93,7 +93,7 @@ jobs:
         with:
           use: true
           install: true
-          config-inline: |
+          buildkitd-config-inline: |
             [worker.oci]
               max-parallelism = 2
       # Log in to GitHub Container registry
