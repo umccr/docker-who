@@ -5,6 +5,7 @@ LABEL author="Alexis Lucattini" \
       maintainer="alexis.lucattini@umccr.org"
 
 ARG RCLONE_VERSION="v1.66.0"
+ARG TARGETPLATFORM
 
 ADD rclone-config-maker.py /usr/local/bin/rclone-config-maker
 
@@ -14,9 +15,9 @@ RUN apt update -y -q && \
       python3 \
       python3-tomli-w && \
     wget \
-      --output-document "rclone-${RCLONE_VERSION}-linux-amd64.deb" \
-      "https://downloads.rclone.org/${RCLONE_VERSION}/rclone-${RCLONE_VERSION}-linux-amd64.deb" && \
-    dpkg -i "rclone-${RCLONE_VERSION}-linux-amd64.deb" && \
+      --output-document "rclone-${RCLONE_VERSION}-"${TARGETPLATFORM//\//-}".deb" \
+      "https://downloads.rclone.org/${RCLONE_VERSION}/rclone-${RCLONE_VERSION}-linux-"${TARGETPLATFORM//\//-}".deb" && \
+    dpkg -i "rclone-${RCLONE_VERSION}-linux-${TARGETPLATFORM//\//-}.deb" && \
     chmod +x /usr/local/bin/rclone-config-maker
 
 
