@@ -105,7 +105,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       # Build and push docker images
       - name: Build and Push Docker Image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v5
         with:
           context: repositories/${{ steps.tag_to_path.outputs.image_path }}
           platforms: ${{ steps.get_platforms.outputs.platforms_as_str }}
