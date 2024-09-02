@@ -22,14 +22,14 @@ RUN apk update && \
     openjdk11 \
     tar \
     bash && \
-  mkdir -p "${ICI_HOME}"
+  mkdir -p "$(dirname "${ICI_HOME}")"
 
 # Add and extract tarball
 ADD "ici-uploader.${TARGETPLATFORM#linux/}.tar.gz" "${ICI_HOME%ici-uploader}"
 ADD "ici-uploader.sh" "/usr/local/bin/ici-uploader"
 
 # Change permissions
-RUN ls "${ICI_HOME}" && chmod a+r "${ICI_HOME}/" && \
+RUN chmod a+r "${ICI_HOME}/" && \
     chmod a+x "${ICI_HOME}/ici-uploader" && \
     chmod a+x "/usr/local/bin/ici-uploader"
 
