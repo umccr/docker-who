@@ -5,8 +5,7 @@ FROM alpine:3
 ARG TARGETPLATFORM
 
 # For the ici-uploader
-ARG ICI_HOME="/usr/local/bin/share/ici-uploader"
-
+ARG ICI_HOME="/usr/local/share/ici-uploader"
 # User args (we run from a non-root user)
 ARG USER="ici_user"
 ARG UID=1000
@@ -30,7 +29,7 @@ ADD "ici-uploader.${TARGETPLATFORM#linux/}.tar.gz" "${ICI_HOME%ici-uploader}"
 ADD "ici-uploader.sh" "/usr/local/bin/ici-uploader"
 
 # Change permissions
-RUN chmod a+r "${ICI_HOME}/" && \
+RUN ls "${ICI_HOME}" && chmod a+r "${ICI_HOME}/" && \
     chmod a+x "${ICI_HOME}/ici-uploader" && \
     chmod a+x "/usr/local/bin/ici-uploader"
 
