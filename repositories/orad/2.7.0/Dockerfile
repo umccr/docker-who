@@ -27,7 +27,7 @@ RUN tar \
 # So we add that in here as well
 COPY orad-arm64.tar.gz /tmp/orad-arm64.tar.gz
 
-RUN if [[ "${TARGETPLATFORM#linux/}" == "arm64" ]]; then \
+RUN if [ "${TARGETPLATFORM#linux/}" = "arm64" ]; then \
       tar -xzf /tmp/orad-arm64.tar.gz -C "${ORA_MOUNT}"; \
     fi && \
     rm /tmp/orad-arm64.tar.gz;
