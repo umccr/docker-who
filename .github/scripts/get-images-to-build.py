@@ -11,7 +11,7 @@ echo "::set-output name=image_versions_to_build::['a','b','c']"
 import json
 import subprocess
 from os import environ
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Dict
 from pathlib import Path
 import logging
@@ -70,7 +70,7 @@ def get_folder_modified_time(folder_path: Path) -> Optional[datetime]:
     folder_modification_time = datetime.fromisoformat(get_date_proc.stdout.decode().strip())
 
     logger.info(f"Folder path modification time for {folder_path} was {folder_modification_time}")
-    return datetime.utcfromtimestamp(folder_modification_time.timestamp())
+    return datetime.fromtimestamp(folder_modification_time.timestamp(), tz=timezone.utc)
 
 
 ## Docker functions
@@ -156,7 +156,7 @@ def get_docker_image_creation_time(repo_name: str, image_name: str, image_versio
     creation_time_str = re.sub("\.\d+Z", "+00:00", inspection_object["Created"])
 
     # Return as datetime object
-    return datetime.utcfromtimestamp(datetime.fromisoformat(creation_time_str).timestamp())
+    return datetime.fromtimestamp(datetime.fromisoformat(creation_time_str).timestamp(), tz=timezone.utc)
 
 
 ## Main
